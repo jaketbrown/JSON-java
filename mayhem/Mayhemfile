@@ -1,0 +1,7 @@
+project: PROJECT
+target: JsonJavaFuzzer
+cmds:
+- cmd: /out/jazzer_driver --agent_path=/out/jazzer_agent_deploy.jar --cp=/out/json-java.jar::/out --target_class=JsonJavaFuzzer --jvm_args="-Xmx2048m"
+  env:
+    LD_LIBRARY_PATH: '"/usr/lib/jvm/java-15-openjdk-amd64/lib/server":/out'
+  libfuzzer: true
