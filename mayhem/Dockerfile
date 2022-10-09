@@ -7,6 +7,8 @@ RUN git clone --depth 1 https://github.com/google/fuzzing && mv fuzzing/dictiona
 
 RUN git clone --depth 1 https://github.com/dvyukov/go-fuzz-corpus && zip -j $SRC/JsonJavaFuzzer_seed_corpus.zip go-fuzz-corpus/json/corpus/* && rm -rf go-fuzz-corpus
 
+RUN unzip $SRC/JsonJavaFuzzer_seed_corpus.zip -d $SRC/corpus_dir
+
 COPY . json-java
 RUN rm -rf json-java/mayhem
 
