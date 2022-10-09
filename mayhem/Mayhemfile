@@ -1,6 +1,10 @@
 project: PROJECT
 target: JsonJavaFuzzer
+testsuite:
+  - https://mayhem.forallsecure.com/jaketbrown/json-java/jsonjavafuzzer/testsuite.tar
+  - file://testsuite/simple.json
 cmds:
-- cmd: /out/jazzer_driver --agent_path=/out/jazzer_agent_deploy.jar --cp=/out/json-java.jar::/out --target_class=JsonJavaFuzzer --jvm_args="-Xmx2048m" /src/corpus_dir
+- cmd: /out/jazzer_driver --agent_path=/out/jazzer_agent_deploy.jar --cp=/out/json-java.jar::/out --target_class=JsonJavaFuzzer --jvm_args="-Xmx2048m"
   env:
     LD_LIBRARY_PATH: '"/usr/lib/jvm/java-15-openjdk-amd64/lib/server":/out'
+  libfuzzer: true

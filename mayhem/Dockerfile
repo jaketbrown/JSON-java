@@ -3,11 +3,11 @@ RUN curl -L https://downloads.apache.org/maven/maven-3/3.8.6/binaries/apache-mav
 
 ENV MVN $SRC/maven/apache-maven-3.8.6/bin/mvn
 
-RUN git clone --depth 1 https://github.com/google/fuzzing && mv fuzzing/dictionaries/json.dict $SRC/JsonJavaFuzzer.dict && rm -rf fuzzing
+#RUN git clone --depth 1 https://github.com/google/fuzzing && mv fuzzing/dictionaries/json.dict $SRC/JsonJavaFuzzer.dict && rm -rf fuzzing
 
-RUN git clone --depth 1 https://github.com/dvyukov/go-fuzz-corpus && zip -j $SRC/JsonJavaFuzzer_seed_corpus.zip go-fuzz-corpus/json/corpus/* && rm -rf go-fuzz-corpus
+#RUN git clone --depth 1 https://github.com/dvyukov/go-fuzz-corpus && zip -j $SRC/JsonJavaFuzzer_seed_corpus.zip go-fuzz-corpus/json/corpus/* && rm -rf go-fuzz-corpus
 
-RUN unzip $SRC/JsonJavaFuzzer_seed_corpus.zip -d $SRC/corpus_dir
+#RUN unzip $SRC/JsonJavaFuzzer_seed_corpus.zip -d $SRC/corpus_dir
 
 COPY . json-java
 RUN rm -rf json-java/mayhem
