@@ -1,11 +1,7 @@
 package org.json;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
+import java.nio.charset.Charset;
 
 /*
 Public Domain.
@@ -61,7 +57,7 @@ public class JSONTokener {
      * @param inputStream The source.
      */
     public JSONTokener(InputStream inputStream) {
-        this(new InputStreamReader(inputStream));
+        this(new InputStreamReader(inputStream, Charset.forName("UTF-8")));
     }
 
 
@@ -125,7 +121,7 @@ public class JSONTokener {
 
     /**
      * Checks if the end of the input has been reached.
-     *  
+     *
      * @return true if at the end of the file and we didn't step back
      */
     public boolean end() {
@@ -189,7 +185,7 @@ public class JSONTokener {
         this.previous = (char) c;
         return this.previous;
     }
-    
+
     /**
      * Get the last character read from the input or '\0' if nothing has been read yet.
      * @return the last character read from the input.
@@ -521,5 +517,11 @@ public class JSONTokener {
     public String toString() {
         return " at " + this.index + " [character " + this.character + " line " +
                 this.line + "]";
+    }
+
+    public void close() throws IOException {
+        if(reader!=null){
+            reader.close();
+        }
     }
 }

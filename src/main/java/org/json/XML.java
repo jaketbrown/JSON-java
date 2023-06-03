@@ -98,7 +98,7 @@ public class XML {
     /**
      * Replace special characters with XML escapes:
      *
-     * <pre>{@code 
+     * <pre>{@code
      * &amp; (ampersand) is replaced by &amp;amp;
      * &lt; (less than) is replaced by &amp;lt;
      * &gt; (greater than) is replaced by &amp;gt;
@@ -229,10 +229,14 @@ public class XML {
      *            The JSONObject that will include the new material.
      * @param name
      *            The tag name.
+     * @param config
+     *            The XML parser configuration.
+     * @param currentNestingDepth
+     *            The current nesting depth.
      * @return true if the close tag is processed.
-     * @throws JSONException
+     * @throws JSONException Thrown if any parsing error occurs.
      */
-    private static boolean parse(XMLTokener x, JSONObject context, String name, XMLParserConfiguration config)
+    private static boolean parse(XMLTokener x, JSONObject context, String name, XMLParserConfiguration config, int currentNestingDepth)
             throws JSONException {
         char c;
         int i;
@@ -402,7 +406,11 @@ public class XML {
 
                         } else if (token == LT) {
                             // Nested element
-                            if (parse(x, jsonObject, tagName, config)) {
+                            if (currentNestingDepth == config.getMaxNestingDepth()) {
+                                throw x.syntaxError("Maximum nesting depth of " + config.getMaxNestingDepth() + " reached");
+                            }
+
+                            if (parse(x, jsonObject, tagName, config, currentNestingDepth + 1)) {
                                 if (config.getForceList().contains(tagName)) {
                                     // Force the value to be an array
                                     if (jsonObject.length() == 0) {
@@ -423,7 +431,7 @@ public class XML {
                                         context.accumulate(tagName, jsonObject);
                                     }
                                 }
-                                
+
                                 return false;
                             }
                         }
@@ -487,7 +495,7 @@ public class XML {
         }
         return string;
     }
-    
+
     /**
      * direct copy of {@link JSONObject#stringToNumber(String)} to maintain Android support.
      */
@@ -534,7 +542,7 @@ public class XML {
             // integer representation.
             // This will narrow any values to the smallest reasonable Object representation
             // (Integer, Long, or BigInteger)
-            
+
             // BigInteger down conversion: We use a similar bitLength compare as
             // BigInteger#intValueExact uses. Increases GC, but objects hold
             // only what they need. i.e. Less runtime overhead if the value is
@@ -550,7 +558,7 @@ public class XML {
         }
         throw new NumberFormatException("val ["+val+"] is not a valid number.");
     }
-    
+
     /**
      * direct copy of {@link JSONObject#isDecimalNotation(String)} to maintain Android support.
      */
@@ -568,7 +576,7 @@ public class XML {
      * name/value pairs and arrays of values. JSON does not does not like to
      * distinguish between elements and attributes. Sequences of similar
      * elements are represented as JSONArrays. Content text may be placed in a
-     * "content" member. Comments, prologs, DTDs, and <pre>{@code 
+     * "content" member. Comments, prologs, DTDs, and <pre>{@code
      * &lt;[ [ ]]>}</pre>
      * are ignored.
      *
@@ -589,7 +597,7 @@ public class XML {
      * name/value pairs and arrays of values. JSON does not does not like to
      * distinguish between elements and attributes. Sequences of similar
      * elements are represented as JSONArrays. Content text may be placed in a
-     * "content" member. Comments, prologs, DTDs, and <pre>{@code 
+     * "content" member. Comments, prologs, DTDs, and <pre>{@code
      * &lt;[ [ ]]>}</pre>
      * are ignored.
      *
@@ -655,7 +663,7 @@ public class XML {
         while (x.more()) {
             x.skipPast("<");
             if(x.more()) {
-                parse(x, jo, null, config);
+                parse(x, jo, null, config, 0);
             }
         }
         return jo;
@@ -669,7 +677,7 @@ public class XML {
      * name/value pairs and arrays of values. JSON does not does not like to
      * distinguish between elements and attributes. Sequences of similar
      * elements are represented as JSONArrays. Content text may be placed in a
-     * "content" member. Comments, prologs, DTDs, and <pre>{@code 
+     * "content" member. Comments, prologs, DTDs, and <pre>{@code
      * &lt;[ [ ]]>}</pre>
      * are ignored.
      *
@@ -695,7 +703,7 @@ public class XML {
      * name/value pairs and arrays of values. JSON does not does not like to
      * distinguish between elements and attributes. Sequences of similar
      * elements are represented as JSONArrays. Content text may be placed in a
-     * "content" member. Comments, prologs, DTDs, and <pre>{@code 
+     * "content" member. Comments, prologs, DTDs, and <pre>{@code
      * &lt;[ [ ]]>}</pre>
      * are ignored.
      *
@@ -752,6 +760,28 @@ public class XML {
      */
     public static String toString(final Object object, final String tagName, final XMLParserConfiguration config)
             throws JSONException {
+        return toString(object, tagName, config, 0, 0);
+    }
+
+    /**
+     * Convert a JSONObject into a well-formed, element-normal XML string,
+     * either pretty print or single-lined depending on indent factor.
+     *
+     * @param object
+     *            A JSONObject.
+     * @param tagName
+     *            The optional name of the enclosing tag.
+     * @param config
+     *            Configuration that can control output to XML.
+     * @param indentFactor
+     *            The number of spaces to add to each level of indentation.
+     * @param indent
+     *            The current ident level in spaces.
+     * @return
+     * @throws JSONException
+     */
+    private static String toString(final Object object, final String tagName, final XMLParserConfiguration config, int indentFactor, int indent)
+            throws JSONException {
         StringBuilder sb = new StringBuilder();
         JSONArray ja;
         JSONObject jo;
@@ -761,9 +791,14 @@ public class XML {
 
             // Emit <tagName>
             if (tagName != null) {
+                sb.append(indent(indent));
                 sb.append('<');
                 sb.append(tagName);
                 sb.append('>');
+                if(indentFactor > 0){
+                    sb.append("\n");
+                    indent += indentFactor;
+                }
             }
 
             // Loop thru the keys.
@@ -806,31 +841,39 @@ public class XML {
                             sb.append('<');
                             sb.append(key);
                             sb.append('>');
-                            sb.append(toString(val, null, config));
+                            sb.append(toString(val, null, config, indentFactor, indent));
                             sb.append("</");
                             sb.append(key);
                             sb.append('>');
                         } else {
-                            sb.append(toString(val, key, config));
+                            sb.append(toString(val, key, config, indentFactor, indent));
                         }
                     }
                 } else if ("".equals(value)) {
+                    sb.append(indent(indent));
                     sb.append('<');
                     sb.append(key);
                     sb.append("/>");
+                    if(indentFactor > 0){
+                        sb.append("\n");
+                    }
 
                     // Emit a new tag <k>
 
                 } else {
-                    sb.append(toString(value, key, config));
+                    sb.append(toString(value, key, config, indentFactor, indent));
                 }
             }
             if (tagName != null) {
 
                 // Emit the </tagName> close tag
+                sb.append(indent(indent - indentFactor));
                 sb.append("</");
                 sb.append(tagName);
                 sb.append('>');
+                if(indentFactor > 0){
+                    sb.append("\n");
+                }
             }
             return sb.toString();
 
@@ -849,15 +892,85 @@ public class XML {
                 // XML does not have good support for arrays. If an array
                 // appears in a place where XML is lacking, synthesize an
                 // <array> element.
-                sb.append(toString(val, tagName == null ? "array" : tagName, config));
+                sb.append(toString(val, tagName == null ? "array" : tagName, config, indentFactor, indent));
             }
             return sb.toString();
         }
 
-        string = (object == null) ? "null" : escape(object.toString());
-        return (tagName == null) ? "\"" + string + "\""
-                : (string.length() == 0) ? "<" + tagName + "/>" : "<" + tagName
-                        + ">" + string + "</" + tagName + ">";
 
+        string = (object == null) ? "null" : escape(object.toString());
+
+        if(tagName == null){
+            return indent(indent) + "\"" + string + "\"" + ((indentFactor > 0) ? "\n" : "");
+        } else if(string.length() == 0){
+            return indent(indent) + "<" + tagName + "/>" + ((indentFactor > 0) ? "\n" : "");
+        } else {
+            return indent(indent) + "<" + tagName
+                    + ">" + string + "</" + tagName + ">" + ((indentFactor > 0) ? "\n" : "");
+        }
+    }
+
+    /**
+     * Convert a JSONObject into a well-formed, pretty printed element-normal XML string.
+     *
+     * @param object
+     *            A JSONObject.
+     * @param indentFactor
+     *            The number of spaces to add to each level of indentation.
+     * @return A string.
+     * @throws JSONException Thrown if there is an error parsing the string
+     */
+    public static String toString(Object object, int indentFactor){
+        return toString(object, null, XMLParserConfiguration.ORIGINAL, indentFactor);
+    }
+
+    /**
+     * Convert a JSONObject into a well-formed, pretty printed element-normal XML string.
+     *
+     * @param object
+     *            A JSONObject.
+     * @param tagName
+     *            The optional name of the enclosing tag.
+     * @param indentFactor
+     *            The number of spaces to add to each level of indentation.
+     * @return A string.
+     * @throws JSONException Thrown if there is an error parsing the string
+     */
+    public static String toString(final Object object, final String tagName, int indentFactor) {
+        return toString(object, tagName, XMLParserConfiguration.ORIGINAL, indentFactor);
+    }
+
+    /**
+     * Convert a JSONObject into a well-formed, pretty printed element-normal XML string.
+     *
+     * @param object
+     *            A JSONObject.
+     * @param tagName
+     *            The optional name of the enclosing tag.
+     * @param config
+     *            Configuration that can control output to XML.
+     * @param indentFactor
+     *            The number of spaces to add to each level of indentation.
+     * @return A string.
+     * @throws JSONException Thrown if there is an error parsing the string
+     */
+    public static String toString(final Object object, final String tagName, final XMLParserConfiguration config, int indentFactor)
+            throws JSONException {
+        return toString(object, tagName, config, indentFactor, 0);
+    }
+
+    /**
+     * Return a String consisting of a number of space characters specified by indent
+     *
+     * @param indent
+     *          The number of spaces to be appended to the String.
+     * @return
+     */
+    private static final String indent(int indent) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < indent; i++) {
+            sb.append(' ');
+        }
+        return sb.toString();
     }
 }

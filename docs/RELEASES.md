@@ -5,6 +5,8 @@ and artifactId "json". For example:
 [https://search.maven.org/search?q=g:org.json%20AND%20a:json&core=gav](https://search.maven.org/search?q=g:org.json%20AND%20a:json&core=gav)
 
 ~~~
+20230227    Fix for CVE-2022-45688 and recent commits
+
 20220924    New License - public domain, and some minor updates
 
 20220320    Wrap StackOverflow with JSONException
@@ -20,6 +22,7 @@ and artifactId "json". For example:
 20190722    Recent commits
 
 20180813    POM change to include Automatic-Module-Name (#431)
+            JSONObject(Map) now throws an exception if any of a map keys are null (#405)
 
 20180130    Recent commits
 
